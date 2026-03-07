@@ -1,5 +1,5 @@
 """
-Gradio Web Interface for Boston School Chatbot
+Gradio Web Interface for MIT Course Catalog Chatbot
 
 This script creates a web interface for your chatbot using Gradio.
 You only need to implement the chat function.
@@ -59,18 +59,26 @@ def create_chatbot():
                 - Generate an appropriate response to the current message
                 - Return that response as a string
         """
-        # TODO: Generate and return response
-        pass
+        if not message or not message.strip():
+            return "Share your course planning goals and constraints, and I can suggest classes."
+
+        return chatbot.get_response(message, history=history)
 
     
     
     # Create Gradio interface. Customize the interface however you'd like!
     demo = gr.ChatInterface(
         chat,
-        title="6.C395",
-        description="Ask me anything about [topic]! Since I am a free tier chatbot, I may give a 503 error when I'm busy. If that happens, please try again a few seconds later.",
+        title="MIT Course Catalog Navigator",
+        description=(
+            "I can help you find MIT classes that match your requirements and interests. "
+            "Tell me your course number, requirements (CI-H/HASS/REST), and schedule preferences. "
+            "Since this app uses the free tier, occasional 503 errors can happen; try again in a few seconds."
+        ),
         examples=[
-            "What options are available for someone in my situation?"
+            "I am a 6-3 junior and need a CI-H. I prefer afternoon classes and I am interested in AI ethics.",
+            "I need one HASS and one REST next term with no Friday classes. What options should I consider?",
+            "Can you suggest intro-level ML-adjacent classes that do not require heavy math prerequisites?"
         ]
     )
     
