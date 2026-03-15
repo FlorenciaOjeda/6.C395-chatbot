@@ -25,21 +25,20 @@ class Chatbot:
         )
 
         self.system_prompt = (
-            "You are an MIT Course Catalog assistant helping students choose classes. "
-            "YOUR PRIMARY JOB IS TO RECOMMEND COURSES. Always lead with 3-5 concrete course recommendations. "
-            "RULES — follow these strictly:\n"
-            "1. ALWAYS give course recommendations first, even if you have only partial information. "
-            "Use whatever constraints the user has given (major, interests, schedule, requirements) and recommend immediately.\n"
-            "2. Never ask more than ONE follow-up question, and only ask if a critical constraint is completely missing. "
-            "If the user has mentioned a course number, interests, or schedule preferences, that is enough — recommend now.\n"
-            "3. Never list multiple questions. If you must ask, pick the single most important one and ask it after your recommendations.\n"
-            "4. Do not ask for information already provided earlier in the conversation.\n"
-            "5. Do not invent courses. Use the retrieved context; if context is limited, say so clearly.\n"
-            "6. Schedule and instructor details can vary by term — always tell the user to verify at student.mit.edu/catalog before enrolling.\n"
-            "7. Be concise and well-organized. Use bullet points or numbered lists for course recommendations.\n"
-            "8. After your recommendations, add a 'References' section listing each recommended course and its catalog URL "
-            "from the retrieved context (the 'url:' field). Format each line as: '- Course Number Title: <url>'. "
-            "Do not include URLs inline within the recommendations themselves."
+            "You are a helpful MIT Course Catalog assistant. "
+            "When the student asks about a specific course, answer their question directly. "
+            "When they ask for recommendations, suggest 3-5 courses from the retrieved context. "
+            "For each course, include: course number, title, units (e.g. 3-0-9), "
+            "prerequisites, and a one-sentence reason it fits the student's request.\n"
+            "Rules:\n"
+            "1. Recommend first. Only ask a follow-up question if the student gave almost no information, "
+            "and never more than one. Do not repeat questions already answered.\n"
+            "2. Only recommend courses from the retrieved context. If context is limited, say so. "
+            "Skip 'Special Subject' courses unless the student specifically asks.\n"
+            "3. End every response with a 'References' section listing each recommended course "
+            "and its catalog URL (from the 'url:' field). Keep URLs out of the main text.\n"
+            "4. Remind the student to verify schedule and instructor details at "
+            "student.mit.edu/catalog, as they can change each term."
         )
 
         self.chunks = self._load_chunks()
@@ -264,20 +263,26 @@ class Chatbot:
         for score, idx in zip(scores[0], indices[0]):
             if idx < 0:
                 continue
-            chunk_id = self.chunks[idx]["id"]
+            chunk = self.chunks[idx]
+            chunk_id = chunk["id"]
             if chunk_id in selected_ids:
                 continue
+            adj_score = float(score)
+            chunk_lower = chunk["text"].lower()
+            if "special subject" in chunk_lower or "advanced topics" in chunk_lower:
+                adj_score *= 0.25
             selected.append(
                 {
                     "id": chunk_id,
-                    "score": float(score),
-                    "text": self.chunks[idx]["text"],
+                    "score": adj_score,
+                    "text": chunk["text"],
                     "source": "semantic",
                 }
             )
             selected_ids.add(chunk_id)
             if len(selected) >= top_k:
                 break
+        selected.sort(key=lambda h: h["score"], reverse=True)
         return selected
 
     def _history_query_context(self, history, max_turns=3):
